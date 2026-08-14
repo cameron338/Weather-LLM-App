@@ -2,7 +2,7 @@
 
 ## Summary
 
-RainCast estimates whether measurable precipitation will occur tomorrow from a seven-day summary of recent weather. Version 0.1 uses standardized logistic regression as an interpretable baseline.
+RainCast estimates whether measurable precipitation will occur tomorrow from a seven-day summary of recent weather. Version 0.2 selects among a class-prior baseline, standardized logistic regression, and histogram gradient boosting. Logistic regression was selected as the best-calibrated validation candidate.
 
 ## Intended use
 
@@ -27,9 +27,17 @@ The generated artifact records source coordinates, date range, feature names, tr
 
 ## Evaluation
 
-Data is ordered by date. The oldest 80% trains the model and the newest 20% forms an untouched holdout, preventing future observations from leaking into training.
+Data is ordered by date. The oldest 60% trains candidate models, the next 20% selects the lowest validation Brier score, and the newest 20% is an untouched final test. The selected model is refitted on the combined train and validation periods before final evaluation.
 
-London baseline results on the 2024 holdout:
+Validation comparison:
+
+| Model | ROC AUC | Brier score |
+|---|---:|---:|
+| Class-prior baseline | 0.5000 | 0.2367 |
+| Logistic regression | **0.6960** | **0.2123** |
+| Histogram gradient boosting | 0.6628 | 0.2312 |
+
+Selected logistic-regression results on the untouched 2024 test period:
 
 | Metric | Value |
 |---|---:|
@@ -50,8 +58,6 @@ ROC AUC measures ranking quality, where 0.5 is random and 1.0 is perfect. Brier 
 
 ## Next evaluation steps
 
-- Add a validation period for model selection while preserving the final holdout.
-- Compare against naive persistence and seasonal baselines.
+- Compare against persistence and seasonal baselines.
 - Measure calibration by probability bucket and season.
-- Evaluate gradient-boosted trees using the same chronological splits.
 - Test geographic generalization across several UK cities.

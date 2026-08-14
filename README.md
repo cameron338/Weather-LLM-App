@@ -10,9 +10,9 @@ The production training path uses historical hourly observations from the [Open-
 Open-Meteo -> hourly observations -> 7-day features -> classifier -> artifact -> FastAPI
 ```
 
-The initial logistic-regression model is intentionally interpretable and serves as a baseline for comparing tree-based models later. Older observations are used for training and the newest 20% for testing, matching how the model would encounter future weather. ROC AUC measures ranking quality; Brier score measures probability calibration.
+Training compares a class-prior baseline, standardized logistic regression, and histogram gradient boosting. The oldest 60% of observations trains each candidate, the next 20% selects the lowest validation Brier score, and the newest 20% evaluates only the winner. This mirrors future deployment while keeping the final test period untouched during model selection.
 
-See the [model card](docs/model-card.md) for provenance, evaluation results, and limitations.
+See the [model card](docs/model-card.md) for provenance and limitations, and the [experiment report](reports/model-comparison.json) for the machine-readable results.
 
 ## Run locally
 
@@ -62,7 +62,7 @@ pytest
 
 ## Roadmap
 
-- Compare logistic regression with gradient-boosted trees
 - Explain predictions with feature contributions
+- Measure calibration by season and probability bucket
 - Add a React/TypeScript interface with city search
 - Containerize and deploy the API; monitor data and prediction drift

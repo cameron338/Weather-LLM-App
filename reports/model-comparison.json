@@ -1,0 +1,32 @@
+{
+  "selection_metric": "brier_score",
+  "selected_model": "logistic_regression",
+  "validation": {
+    "class_prior": {
+      "roc_auc": 0.5,
+      "brier_score": 0.2367
+    },
+    "logistic_regression": {
+      "roc_auc": 0.696,
+      "brier_score": 0.2123
+    },
+    "hist_gradient_boosting": {
+      "roc_auc": 0.6628,
+      "brier_score": 0.2312
+    }
+  },
+  "test": {
+    "roc_auc": 0.6836,
+    "brier_score": 0.2057
+  },
+  "rows": {
+    "train": 1092,
+    "validation": 364,
+    "test": 364
+  },
+  "periods": {
+    "train": ["2020-01-07 00:00:00", "2023-01-02 00:00:00"],
+    "validation": ["2023-01-03 00:00:00", "2024-01-01 00:00:00"],
+    "test": ["2024-01-02 00:00:00", "2024-12-30 00:00:00"]
+  }
+}
