@@ -8,13 +8,10 @@ from typing import Any
 
 import joblib
 import pandas as pd
-from sklearn.linear_model import LogisticRegression
-from sklearn.metrics import brier_score_loss, roc_auc_score
-from sklearn.pipeline import Pipeline
-from sklearn.preprocessing import StandardScaler
 
 from raincast.data import build_training_dataset
 from raincast.demo_data import generate_demo_dataset
+from raincast.experiment import run_experiment
 from raincast.features import FEATURES
 from raincast.open_meteo import Location, OpenMeteoClient
 
@@ -26,37 +23,15 @@ def train_model(
     output_path: Path,
     *,
     source_metadata: dict[str, Any],
-    test_fraction: float = 0.2,
 ) -> dict[str, Any]:
-    """Fit and evaluate the baseline using a chronological holdout."""
-    if len(data) < 30:
-        raise ValueError("training requires at least 30 complete examples")
-    if not 0 < test_fraction < 1:
-        raise ValueError("test_fraction must be between 0 and 1")
-
+    """Run model selection and persist the selected estimator with provenance."""
     ordered = data.sort_index()
-    split_at = int(len(ordered) * (1 - test_fraction))
-    train = ordered.iloc[:split_at]
-    test = ordered.iloc[split_at:]
-    if train["will_rain"].nunique() < 2 or test["will_rain"].nunique() < 2:
-        raise ValueError("both chronological splits must contain rainy and dry examples")
-
-    model = Pipeline(
-        [("scale", StandardScaler()), ("classifier", LogisticRegression(max_iter=1000))]
-    )
-    model.fit(train[FEATURES], train["will_rain"])
-    probabilities = model.predict_proba(test[FEATURES])[:, 1]
-    metrics = {
-        "roc_auc": round(float(roc_auc_score(test["will_rain"], probabilities)), 4),
-        "brier_score": round(float(brier_score_loss(test["will_rain"], probabilities)), 4),
-        "train_rows": len(train),
-        "test_rows": len(test),
-        "test_positive_rate": round(float(test["will_rain"].mean()), 4),
-    }
+    model, experiment = run_experiment(ordered)
     bundle = {
         "model": model,
         "features": FEATURES,
-        "metrics": metrics,
+        "metrics": experiment["test"],
+        "experiment": experiment,
         "source": source_metadata,
         "training_period": {
             "start": str(ordered.index.min()),
@@ -65,7 +40,7 @@ def train_model(
     }
     output_path.parent.mkdir(parents=True, exist_ok=True)
     joblib.dump(bundle, output_path)
-    return metrics
+    return experiment
 
 
 def load_open_meteo_dataset(
@@ -80,7 +55,7 @@ def load_open_meteo_dataset(
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Train the RainCast baseline classifier")
+    parser = argparse.ArgumentParser(description="Compare and train RainCast classifiers")
     parser.add_argument("--source", choices=("open-meteo", "demo"), default="open-meteo")
     parser.add_argument("--output", type=Path, default=Path("artifacts/rain_model.joblib"))
     parser.add_argument("--start-date", type=date.fromisoformat, default=date(2020, 1, 1))
