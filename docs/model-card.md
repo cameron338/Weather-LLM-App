@@ -56,6 +56,12 @@ ROC AUC measures ranking quality, where 0.5 is random and 1.0 is perfect. Brier 
 - Weather patterns shift by season and over longer climate periods.
 - The fixed 0.1 mm threshold treats trace and heavy rainfall identically.
 
+## Explanation method
+
+The API ranks one-feature-at-a-time probability changes. For each input, it replaces that value with the median from the model-development period and measures the difference in predicted probability. This method is deterministic and model-agnostic, so the same interface works if a future experiment selects a different estimator.
+
+The explanation describes local model sensitivity, not physical causation. Features can be correlated, and the independently measured contributions should not be summed.
+
 ## Next evaluation steps
 
 - Compare against persistence and seasonal baselines.

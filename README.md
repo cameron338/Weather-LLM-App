@@ -1,6 +1,6 @@
 # RainCast
 
-RainCast is an end-to-end machine-learning service that estimates the probability of rain tomorrow from the previous seven days of weather. It demonstrates real-data ingestion, leakage-safe feature engineering, chronological evaluation, API serving, validation, testing, and CI.
+RainCast is an end-to-end machine-learning service that estimates the probability of rain tomorrow from the previous seven days of weather. It demonstrates real-data ingestion, leakage-safe feature engineering, chronological evaluation, local prediction explanations, API serving, validation, testing, and CI.
 
 The production training path uses historical hourly observations from the [Open-Meteo Historical Weather API](https://open-meteo.com/en/docs/historical-weather-api), which requires no API key. A separate deterministic demo source keeps tests and offline development reproducible.
 
@@ -53,6 +53,25 @@ curl -X POST http://127.0.0.1:8000/predict \
   -d '{"avg_temp_c":12,"avg_humidity_pct":91,"avg_pressure_hpa":1004,"pressure_change_hpa":-8,"rainfall_7d_mm":28,"avg_wind_kph":19}'
 ```
 
+The response contains a ranked explanation. Each `probability_change` measures how the prediction changes when that feature alone is replaced with its training-period median:
+
+```json
+{
+  "will_rain": true,
+  "rain_probability": 0.8902,
+  "explanation": [
+    {
+      "feature": "avg_pressure_hpa",
+      "probability_change": 0.0996,
+      "direction": "increases"
+    }
+  ],
+  "model_version": "0.2.0"
+}
+```
+
+These are local sensitivity estimates, not causal effects, and independent contributions are not additive.
+
 ## Test
 
 ```bash
@@ -62,7 +81,6 @@ pytest
 
 ## Roadmap
 
-- Explain predictions with feature contributions
 - Measure calibration by season and probability bucket
 - Add a React/TypeScript interface with city search
 - Containerize and deploy the API; monitor data and prediction drift
