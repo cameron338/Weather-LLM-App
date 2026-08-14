@@ -1,16 +1,18 @@
 # RainCast
 
-RainCast is an end-to-end machine-learning service that estimates the probability of rain tomorrow from a seven-day weather summary. It demonstrates data generation, model training, evaluation, API serving, validation, testing, and CI.
+RainCast is an end-to-end machine-learning service that estimates the probability of rain tomorrow from the previous seven days of weather. It demonstrates real-data ingestion, leakage-safe feature engineering, chronological evaluation, API serving, validation, testing, and CI.
 
-> **MVP status:** the pipeline currently uses deterministic synthetic weather observations so the project is reproducible and runnable without API keys. The next milestone replaces this source with historical public weather data and time-aware validation.
+The production training path uses historical hourly observations from the [Open-Meteo Historical Weather API](https://open-meteo.com/en/docs/historical-weather-api), which requires no API key. A separate deterministic demo source keeps tests and offline development reproducible.
 
 ## Architecture
 
 ```text
-weather data -> feature pipeline -> logistic regression -> saved artifact -> FastAPI
+Open-Meteo -> hourly observations -> 7-day features -> classifier -> artifact -> FastAPI
 ```
 
-The initial logistic-regression model is intentionally interpretable and serves as a baseline for comparing tree-based models later. ROC AUC measures ranking quality; Brier score measures probability calibration.
+The initial logistic-regression model is intentionally interpretable and serves as a baseline for comparing tree-based models later. Older observations are used for training and the newest 20% for testing, matching how the model would encounter future weather. ROC AUC measures ranking quality; Brier score measures probability calibration.
+
+See the [model card](docs/model-card.md) for provenance, evaluation results, and limitations.
 
 ## Run locally
 
@@ -25,6 +27,23 @@ uvicorn raincast.api:app --reload
 ```
 
 Open `http://127.0.0.1:8000/docs` for the interactive API documentation.
+
+By default, training downloads London observations from 2020 through 2024. Choose another location or period with explicit coordinates:
+
+```bash
+python -m raincast.train \
+  --location Manchester \
+  --latitude 53.4808 \
+  --longitude -2.2426 \
+  --start-date 2020-01-01 \
+  --end-date 2024-12-31
+```
+
+For offline development only:
+
+```bash
+python -m raincast.train --source demo --rows 5000
+```
 
 Example prediction:
 
@@ -43,10 +62,7 @@ pytest
 
 ## Roadmap
 
-- Ingest historical observations from a public weather API
-- Use chronological train/validation/test splits to prevent leakage
 - Compare logistic regression with gradient-boosted trees
 - Explain predictions with feature contributions
 - Add a React/TypeScript interface with city search
 - Containerize and deploy the API; monitor data and prediction drift
-
