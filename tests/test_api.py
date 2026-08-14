@@ -3,6 +3,7 @@ from pathlib import Path
 from fastapi.testclient import TestClient
 
 from raincast import api
+from raincast.demo_data import generate_demo_dataset
 from raincast.train import train_model
 
 
@@ -12,7 +13,7 @@ def test_health():
 
 def test_prediction(tmp_path: Path, monkeypatch):
     path = tmp_path / "model.joblib"
-    train_model(path, rows=800)
+    train_model(generate_demo_dataset(rows=800), path, source_metadata={"type": "test"})
     monkeypatch.setattr(api, "model_path", lambda: path)
     api.load_bundle.cache_clear()
     response = TestClient(api.app).post(
@@ -30,4 +31,3 @@ def test_prediction(tmp_path: Path, monkeypatch):
     body = response.json()
     assert 0 <= body["rain_probability"] <= 1
     assert isinstance(body["will_rain"], bool)
-
