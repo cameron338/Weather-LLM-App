@@ -20,6 +20,8 @@ def test_train_model_records_metrics_and_provenance(tmp_path: Path):
     assert bundle["source"] == {"type": "test-fixture"}
     assert bundle["experiment"] == experiment
     assert bundle["metrics"] == experiment["test"]
+    assert set(bundle["reference_values"]) == set(bundle["features"])
+    assert bundle["model_version"] == "0.2.0"
     assert bundle["training_period"]["start"] < bundle["training_period"]["end"]
 
 

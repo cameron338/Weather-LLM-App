@@ -31,3 +31,8 @@ def test_prediction(tmp_path: Path, monkeypatch):
     body = response.json()
     assert 0 <= body["rain_probability"] <= 1
     assert isinstance(body["will_rain"], bool)
+    assert len(body["explanation"]) == 6
+    assert body["model_version"] == "0.2.0"
+    assert [abs(item["probability_change"]) for item in body["explanation"]] == sorted(
+        [abs(item["probability_change"]) for item in body["explanation"]], reverse=True
+    )

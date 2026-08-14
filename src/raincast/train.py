@@ -9,6 +9,7 @@ from typing import Any
 import joblib
 import pandas as pd
 
+from raincast import __version__
 from raincast.data import build_training_dataset
 from raincast.demo_data import generate_demo_dataset
 from raincast.experiment import run_experiment
@@ -27,11 +28,17 @@ def train_model(
     """Run model selection and persist the selected estimator with provenance."""
     ordered = data.sort_index()
     model, experiment = run_experiment(ordered)
+    development_end = experiment["rows"]["train"] + experiment["rows"]["validation"]
+    reference_values = {
+        feature: float(ordered.iloc[:development_end][feature].median()) for feature in FEATURES
+    }
     bundle = {
+        "model_version": __version__,
         "model": model,
         "features": FEATURES,
         "metrics": experiment["test"],
         "experiment": experiment,
+        "reference_values": reference_values,
         "source": source_metadata,
         "training_period": {
             "start": str(ordered.index.min()),

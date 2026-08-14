@@ -3,12 +3,15 @@ from __future__ import annotations
 import os
 from functools import lru_cache
 from pathlib import Path
+from typing import Literal
 
 import joblib
 import pandas as pd
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
 
+from raincast import __version__
+from raincast.explain import explain_prediction
 from raincast.features import FEATURES
 
 
@@ -21,10 +24,17 @@ class WeatherFeatures(BaseModel):
     avg_wind_kph: float = Field(ge=0, le=300)
 
 
+class Contribution(BaseModel):
+    feature: str
+    probability_change: float
+    direction: Literal["increases", "decreases"]
+
+
 class Prediction(BaseModel):
     will_rain: bool
     rain_probability: float
-    model_version: str = "0.1.0"
+    explanation: list[Contribution]
+    model_version: str
 
 
 def model_path() -> Path:
@@ -39,7 +49,7 @@ def load_bundle():
     return joblib.load(path)
 
 
-app = FastAPI(title="RainCast API", version="0.1.0")
+app = FastAPI(title="RainCast API", version=__version__)
 
 
 @app.get("/health")
@@ -56,5 +66,10 @@ def predict(features: WeatherFeatures) -> Prediction:
     values = features.model_dump() if hasattr(features, "model_dump") else features.dict()
     frame = pd.DataFrame([[values[name] for name in FEATURES]], columns=FEATURES)
     probability = float(bundle["model"].predict_proba(frame)[0, 1])
-    return Prediction(will_rain=probability >= 0.5, rain_probability=round(probability, 4))
-
+    contributions = explain_prediction(bundle["model"], frame, bundle["reference_values"])
+    return Prediction(
+        will_rain=probability >= 0.5,
+        rain_probability=round(probability, 4),
+        explanation=[Contribution(**vars(item)) for item in contributions],
+        model_version=bundle["model_version"],
+    )
